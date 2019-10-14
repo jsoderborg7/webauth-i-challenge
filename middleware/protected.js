@@ -1,13 +1,6 @@
-const express = require('express');
-const helmet = require('helmet');
+
 const bcrypt = require('bcryptjs');
-const db = require('./data/db-config');
-const Users = require('./users/users-model');
-
-const server = express();
-
-server.use(helmet());
-server.use(express.json());
+const Users = require('../users/users-model');
 
 function protected(req, res, next){
   const {username, password} = req.body;

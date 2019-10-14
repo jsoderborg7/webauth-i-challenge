@@ -15,10 +15,10 @@ server.get('/', (req, res) =>{
 });
 
 server.post('/api/register', (req, res) =>{
-  const userData = req.body;
-  const hash = bcrypt.hashSync(userData.password, 10)
-  userData.password = hash;
-  Users.add(userData)
+  const user = req.body;
+  const hash = bcrypt.hashSync(user.password, 10)
+  user.password = hash;
+  Users.add(user)
     .then(user =>{
       res.status(200).json(user)
     })
@@ -30,9 +30,10 @@ server.post('/api/register', (req, res) =>{
 server.post('/api/login', (req, res) =>{
   let {username, password} = req.body;
   if (username && password){
-    Users.findById({username})
+    Users.findBy({username})
       .first()
       .then(user =>{
+        console.log(user);
         if (user && bcrypt.compareSync(password, user.password)){
           res.status(200).json({message: `${user.username} is logged in!`})
         } else {
