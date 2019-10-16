@@ -1,14 +1,38 @@
 const express = require('express');
 const helmet = require('helmet');
+const cors = require('cors');
 const bcrypt = require('bcryptjs');
-const db = require('./data/db-config');
 const Users = require('./users/users-model');
 const Protected = require('./middleware/protected');
+const sessions = require('express-session');
+const KnexSessionStore = require('connect-session-knex')(sessions);
+
+const knexConfig = require('./data/db-config');
 
 const server = express();
 
+const sessionConfig = {
+  name: "heckyes",
+  secret: 'secret secret',
+  cookie: {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60,
+    secure: false,
+  },
+  resave: false,
+  saveUninitialized: true,
+  store: new KnexSessionStore({
+    knex: knexConfig,
+    createtable: true,
+    clearInterval: 1000 * 60 * 30,
+  }),
+};
+
+server.use(sessions(sessionConfig));
+
 server.use(helmet());
 server.use(express.json());
+server.use(cors());
 
 server.get('/', (req, res) =>{
   res.send("We're connected!")
@@ -29,12 +53,13 @@ server.post('/api/register', (req, res) =>{
 
 server.post('/api/login', (req, res) =>{
   let {username, password} = req.body;
-  if (username && password){
     Users.findBy({username})
       .first()
       .then(user =>{
         console.log(user);
         if (user && bcrypt.compareSync(password, user.password)){
+          req.session.username = user.username;
+          console.log('session', req.session);
           res.status(200).json({message: `${user.username} is logged in!`})
         } else {
           res.status(400).json({message: "Invalid username or password"})
@@ -43,8 +68,15 @@ server.post('/api/login', (req, res) =>{
       .catch(err =>{
         res.status(500).json(err)
       })
+});
+
+server.get('/api/logout', (req, res) =>{
+  if (req.session){
+    req.session.destroy(err =>{
+      res.status(200).json({message: "Well ok then"})
+    })
   } else {
-    res.status(400).json({message: 'Please provide username and password'})
+    res.status(200).json({message: 'Already logged out'})
   }
 });
 
